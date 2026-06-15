@@ -8,7 +8,7 @@ sdk_version: "4.44.0"
 python_version: "3.10"
 app_file: app.py
 pinned: true
-short_description: Governed AI tutor that preserves learner agency — not just chat.
+short_description: Governed AI tutor that preserves learner agency.
 tags:
   - education
   - tutoring
