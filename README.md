@@ -7,7 +7,17 @@ sdk: gradio
 sdk_version: "4.44.0"
 python_version: "3.10"
 app_file: app.py
-pinned: false
+pinned: true
+short_description: Governed AI tutor that preserves learner agency — not just chat.
+tags:
+  - education
+  - tutoring
+  - responsible-ai
+  - learner-agency
+  - ai-safety
+  - gradio
+  - llm
+  - scaffolding
 ---
 
 # Soraya Study
