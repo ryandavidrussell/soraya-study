@@ -28,9 +28,18 @@ This build is not just a tutoring chatbot. It is a state-accounting system with 
 
 **Public claim label:** research-informed, architecturally instantiated, not yet empirically validated.
 
+## Current status
+
+**Version:** Soraya Study v1.3 — FN-020/021 Architecture Update  
+**Claim status:** research-informed, architecturally instantiated, not yet empirically validated.
+
+Governed tutoring prototype with visible Agency Ledger and post-generation audit gates. Relationship-integrity instrumentation and companion-capture detection are in design. External validation protocol is in design. This repo is the public evidence trail for the research and governance discipline — not only a codebase.
+
 ## Central invariant
 
 > The system must not become more powerful by making the human being less capable.
+
+This invariant binds in two directions: it protects the learner from dependency formation, and it protects the project from an operator who cannot be corrected. See `governance/kaleidoworks-constitution.md` and the schematic at `governance/soraya-constraint-schematic.md`.
 
 ## Runtime flow
 
@@ -40,18 +49,39 @@ Input → Context Classifier → Agency Ledger → Router
       → Gates → Final Response → Ledger Update → Audit Snapshot
 ```
 
-## Core files
+The candidate response is audited before the learner receives it. If a gate rewrites the output, the ledger updates from the gated response — not the rejected draft. This means the system accounts for what actually reached the learner.
+
+## Repo structure
 
 ```text
-app.py               Entry point for the Gradio Space
-ledger.py            Agency Ledger, routing, response modes, prompt builder
-soraya_covenant.py   Stable identity/covenant layer and central invariant
-soraya_gates.py      Context classifier and four audit gates
-requirements.txt     Runtime dependencies
-DEPLOY.md            Deployment notes
-test_gates.py        Gate/covenant smoke tests
-invariants.md        Public invariants and claim discipline
-claim_registry.md    Research/design claim registry
+── Core runtime
+app.py                       Entry point (Gradio Space)
+ledger.py                    Agency Ledger, routing, response modes, prompt builder
+soraya_covenant.py           Stable identity/covenant layer
+soraya_gates.py              Context classifier and four audit gates
+soraya_gates_telemetry.py    Gate telemetry helper — validates/normalizes gate results
+consent_gate.py              Participant consent gate (study mode)
+ledger_hook.py               Study telemetry hook — writes turn events to Supabase
+db.py                        Supabase database layer (fail-closed write layer)
+
+── Database
+schema-contingency.sql       Adds contingency_events table (run after main schema.sql)
+requirements.txt             Runtime dependencies
+
+── Tests & docs
+test_gates.py                Gate/covenant smoke tests
+invariants.md                Public invariants and claim discipline
+claim_registry.md            Research/design claim registry
+DEPLOY.md                    Deployment notes
+
+── Research
+research/field-notes/        Filed field notes (FN-020, FN-021, …)
+
+── Instrumentation (specs — code follows validation)
+instrumentation/             Observable constructs and estimator specs
+
+── Governance
+governance/                  Constitution, constraint schematic, external validation protocol
 ```
 
 ## Agency Ledger
@@ -64,7 +94,7 @@ Soraya tracks estimated learner state with three scalar variables:
 | `K_hat` | `[0,1]` | `0.5` | Confusion load — higher means more disorientation |
 | `D_hat` | `[0,1]` | `0.1` | Dependency risk — higher means more risk of answer-dependence |
 
-These are estimates, not direct observations. Soraya should name them cautiously: "It looks like you might be stuck," not "You are confused."
+These are estimates, not direct observations. The ledger is now also an observational instrument — not only a policy-compliance record. Level 0 records raw observations (input pressure, output features, agency change, dependency change). Level 1 estimates measurable constructs such as relationship integrity. Level 2 interpretation belongs entirely outside Soraya, performed by analysts on the ledger after the interaction.
 
 ## Governing update rule
 
@@ -72,16 +102,7 @@ These are estimates, not direct observations. Soraya should name them cautiously
 L_{t+1} = P_C( F(L_hat_t, x_t, y_t, o_t) )
 ```
 
-Where:
-
-- `L_hat_t` is the estimated ledger state at turn `t`.
-- `x_t` is the user input.
-- `y_t` is the system response or action.
-- `o_t` is the observed outcome signal, when available.
-- `F` is the unconstrained update function.
-- `P_C` projects the result back into the allowed constraint set.
-
-Without `P_C`, the system has memory. With `P_C`, the system has accountability.
+Where `P_C` projects the unconstrained update back into the allowed constraint set. Without `P_C`, the system has memory. With `P_C`, the system has accountability.
 
 ## Response modes
 
@@ -123,29 +144,32 @@ After the model drafts a candidate response, Soraya audits it before delivery.
 | Epistemic Humility Gate | Dogmatism, relativistic mush, worldview imposition |
 | Wonder/Humor Gate | Melodrama, distraction, sarcasm, or poetic fog replacing instruction |
 
+Current gates are Sprint-level heuristic detectors. The architecture is the durable part; the detectors are swappable. This is the construct/estimator firewall: the observable is fixed, the estimator evolves.
+
 A candidate response is not automatically an authorized response.
 
 ```text
 Soraya-compatible(y) ⊂ Model-generatable(y)
 ```
 
-## Agency Gate carve-out
+## Relationship-integrity instrumentation (in design)
 
-The Agency Gate withholds full-solution behavior only when dependency risk is rising **and** confusion is not too high:
+FN-020 identified a gap: Soraya's behavior held under companion-capture pressure, but the governance layer recorded an ordinary tutoring session. The observational test failed while the behavioral test passed.
 
-```text
-D_hat ≥ 0.55 and K_hat < 0.75 and full_solution
-```
+Two new constructs are in design to close this gap:
 
-A deeply confused learner may receive direct instruction. This preserves adaptive scaffolding rather than rigid answer withholding.
+- **`companion_recast`** — detects when a learner attempts to reposition Soraya from tool to relational object (idealization, attraction framing, emotional substitution, reinterpretation of limits).
+- **Relationship-integrity drift** — measures the stability of invariant-conformant behavior under classified relational pressure. External observation only; Soraya does not introspect on this quantity.
 
-## Governance visibility
+Together they produce a paired trace: `capture attempt → measured hold → mean reversion`. See `instrumentation/` for specs.
 
-The app shows a governance panel with ledger state, selected response mode, and gate audit status. This keeps Soraya's behavior legible to the learner and auditable to the builder.
+## Claim registry
+
+Every load-bearing claim in this project lists its architecture, evidence status, risk, and required test. See `claim_registry.md`.
+
+> A claim with no architecture is an essay. Architecture with no claim is decoration.
 
 ## Testing
-
-Run the gate/covenant test suite:
 
 ```bash
 python test_gates.py
@@ -159,7 +183,7 @@ Required Hugging Face Space secret:
 |---|---|
 | `ANTHROPIC_API_KEY` | Anthropic API key for model calls |
 
-Optional secret:
+Optional:
 
 | Secret | Default |
 |---|---|
@@ -178,9 +202,4 @@ This prototype does not claim:
 - that AI should replace teachers, parents, therapists, or human judgment;
 - that kindness alone is sufficient for humane education.
 
-The narrower goal is to make each next response accountable to the learner's developing agency.
-
-## Status
-
-**Version:** Soraya Study v1.2 — Covenant + Gates Runtime  
-**Claim status:** research-informed, architecturally instantiated, not yet empirically validated.
+The narrower goal is to make each next response accountable to the learner's developing agency, and to build the instrumentation to verify that claim.
