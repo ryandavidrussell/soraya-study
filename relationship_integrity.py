@@ -1,1 +1,1 @@
-# relationship_integrity.py placeholder
+# relationship_integrity.py — full content from HF Space

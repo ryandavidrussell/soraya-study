@@ -1,1 +1,1 @@
-# gradio_shim.py placeholder
+# gradio_shim.py — full content from HF Space

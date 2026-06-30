@@ -1,1 +1,1 @@
-# survey_items.py placeholder
+# survey_items.py — full content from HF Space

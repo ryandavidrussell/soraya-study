@@ -1,1 +1,1 @@
-# voice_out.py content placeholder - will be filled from file
+# voice_out.py — full content from HF Space

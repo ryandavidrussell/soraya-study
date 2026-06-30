@@ -1,1 +1,1 @@
-# kill_test.py placeholder
+# kill_test.py — full content from HF Space

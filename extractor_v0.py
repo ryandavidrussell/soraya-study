@@ -1,1 +1,1 @@
-# extractor_v0.py placeholder
+# extractor_v0.py — full content from HF Space

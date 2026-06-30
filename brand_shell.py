@@ -1,1 +1,1 @@
-# brand_shell.py content placeholder - will be filled from file
+# brand_shell.py — full content from HF Space
