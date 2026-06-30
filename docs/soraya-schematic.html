@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soraya Study — System Architecture</title>
+<style>
+  :root {
+    --terracotta: #C4563D;
+    --midnight:   #1E3550;
+    --sage:       #7B8F6A;
+    --gold:       #D4A124;
+    --oat:        #E8DFC9;
+    --ink:        #16202c;
+    --paper:      #f9f7f2;
+    --surface:    #ffffff;
+    --border:     rgba(30,53,80,0.14);
+    --text:       #1a2332;
+    --muted:      #5a6b7a;
+    --font-display: Georgia, 'Times New Roman', serif;
+    --font-body:    -apple-system, 'Segoe UI', sans-serif;
+    --font-mono:    ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-body); background: var(--paper); color: var(--text); font-size: 14px; line-height: 1.5; }
+  header { background: var(--midnight); color: var(--oat); padding: 32px 48px 28px; border-bottom: 3px solid var(--terracotta); }
+  header h1 { font-family: var(--font-display); font-size: 26px; font-weight: normal; letter-spacing: 0.01em; margin-bottom: 4px; }
+  header p { color: rgba(232,223,201,0.6); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .version-badge { display: inline-block; background: var(--terracotta); color: white; font-size: 11px; font-family: var(--font-mono); padding: 2px 8px; border-radius: 3px; margin-left: 12px; vertical-align: middle; letter-spacing: 0.05em; }
+  .canvas { max-width: 1280px; margin: 0 auto; padding: 40px 48px 60px; }
+  .section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding-left: 2px; }
+  .flow-row { display: flex; align-items: center; gap: 0; margin-bottom: 48px; flex-wrap: wrap; }
+  .flow-node { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 14px 18px; min-width: 130px; text-align: center; position: relative; flex-shrink: 0; }
+  .flow-node .node-title { font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 3px; }
+  .flow-node .node-file { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+  .flow-node.accent-terracotta { border-color: var(--terracotta); border-width: 2px; }
+  .flow-node.accent-gold { border-color: var(--gold); border-width: 2px; }
+  .flow-node.accent-sage { border-color: var(--sage); border-width: 2px; }
+  .flow-node.accent-midnight { border-color: var(--midnight); border-width: 2px; background: var(--midnight); color: var(--oat); }
+  .flow-node.accent-midnight .node-title { color: var(--oat); }
+  .flow-node.accent-midnight .node-file { color: rgba(232,223,201,0.55); }
+  .flow-arrow { font-size: 18px; padding: 0 6px; flex-shrink: 0; color: var(--muted); }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 48px; }
+  .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 48px; }
+  @media (max-width: 900px) { .three-col, .two-col { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .panel-header { padding: 12px 16px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .panel-header h3 { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+  .panel-header .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-terracotta { background: var(--terracotta); }
+  .dot-gold { background: var(--gold); }
+  .dot-sage { background: var(--sage); }
+  .dot-midnight { background: var(--midnight); }
+  .dot-blue { background: #4a90d9; }
+  .panel-body { padding: 14px 16px; }
+  .module-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+  .module-row:last-child { border-bottom: none; }
+  .module-name { font-family: var(--font-mono); font-size: 11px; color: var(--text); font-weight: 500; }
+  .module-desc { font-size: 11px; color: var(--muted); text-align: right; max-width: 180px; }
+  .pipeline { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 48px; }
+  .pipe-step { flex: 1; min-width: 100px; background: var(--paper); border: 1px solid var(--border); border-radius: 6px; padding: 12px 10px; text-align: center; }
+  .pipe-step .step-num { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .pipe-step .step-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .pipe-step .step-file { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); }
+  .pipe-step.highlight-gate { background: #fff8f0; border-color: var(--terracotta); border-width: 1.5px; }
+  .pipe-step.highlight-ledger { background: #f0f4ff; border-color: var(--midnight); border-width: 1.5px; }
+  .pipe-step.highlight-db { background: #f0fff4; border-color: var(--sage); border-width: 1.5px; }
+  .pipe-arrow { display: flex; align-items: center; color: var(--muted); font-size: 14px; padding: 0 2px; flex-shrink: 0; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th { text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1.5px solid var(--border); }
+  .data-table td { padding: 8px 10px; border-bottom: 1px solid rgba(0,0,0,0.04); vertical-align: top; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table td:first-child { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--midnight); }
+  .tag { display: inline-block; font-size: 9.5px; font-family: var(--font-mono); padding: 1px 6px; border-radius: 3px; margin-right: 3px; }
+  .tag-write { background: #fef3cd; color: #856404; }
+  .tag-read { background: #d1ecf1; color: #0c5460; }
+  .tag-admin { background: #d4edda; color: #155724; }
+  .gate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .gate-card { background: var(--paper); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; }
+  .gate-card .gate-name { font-weight: 600; font-size: 12px; color: var(--text); margin-bottom: 3px; }
+  .gate-card .gate-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .gate-num { display: inline-block; width: 18px; height: 18px; background: var(--terracotta); color: white; border-radius: 50%; font-size: 10px; font-weight: 700; text-align: center; line-height: 18px; margin-right: 6px; }
+  .ledger-vars { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+  .lvar { background: var(--midnight); color: var(--oat); border-radius: 6px; padding: 10px 14px; flex: 1; min-width: 80px; text-align: center; }
+  .lvar .lvar-sym { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--gold); display: block; margin-bottom: 3px; }
+  .lvar .lvar-name { font-size: 10px; color: rgba(232,223,201,0.65); letter-spacing: 0.04em; }
+  .stack-row { display: flex; gap: 12px; margin-bottom: 48px; flex-wrap: wrap; }
+  .stack-block { flex: 1; min-width: 160px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stack-block .sb-layer { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stack-block .sb-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .stack-block .sb-detail { font-size: 11px; color: var(--muted); }
+  .stack-sep { display: flex; align-items: center; color: var(--muted); font-size: 20px; padding: 0 2px; }
+  .rls-row { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .rls-card { flex: 1; min-width: 140px; border-radius: 6px; padding: 12px 14px; border: 1px solid var(--border); }
+  .rls-card.rls-hf { border-color: var(--terracotta); background: #fff8f6; }
+  .rls-card.rls-dash { border-color: var(--sage); background: #f6faf6; }
+  .rls-card .rls-title { font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+  .rls-card .rls-key { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+  .rls-card .rls-perms { font-size: 11px; }
+  footer { border-top: 1px solid var(--border); padding: 20px 48px; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); background: var(--surface); }
+  hr.section-rule { border: none; border-top: 1px solid var(--border); margin: 0 0 36px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Soraya Study <span class="version-badge">v1.4.2</span></h1>
+  <p>Kaleidoworks &nbsp;·&nbsp; System Architecture &nbsp;·&nbsp; June 2026</p>
+</header>
+<div class="canvas">
+  <div class="section-label">Participant Journey</div>
+  <div class="flow-row">
+    <div class="flow-node accent-midnight"><div class="node-title">HF Space</div><div class="node-file">Gradio UI</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node accent-terracotta"><div class="node-title">Consent Gate</div><div class="node-file">consent_gate.py</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node accent-gold"><div class="node-title">Pre-Survey</div><div class="node-file">survey_items.py</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node"><div class="node-title">Chat Session</div><div class="node-file">app.py · ledger.py</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node accent-gold"><div class="node-title">Post-Survey</div><div class="node-file">survey_items.py</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node accent-sage"><div class="node-title">Supabase</div><div class="node-file">db.py</div></div>
+  </div>
+  <hr class="section-rule">
+  <div class="section-label">Per-Turn Pipeline (every chat message)</div>
+  <div class="pipeline">
+    <div style="display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding-bottom:4px;">
+      <div class="pipe-step"><div class="step-num">01</div><div class="step-name">User Input</div><div class="step-file">app.py</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step"><div class="step-num">02</div><div class="step-name">Context Classify</div><div class="step-file">ledger.py</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step highlight-ledger"><div class="step-num">03</div><div class="step-name">Ledger Update</div><div class="step-file">LedgerState</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step highlight-ledger"><div class="step-num">04</div><div class="step-name">Router</div><div class="step-file">constraint_router()</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step"><div class="step-num">05</div><div class="step-name">Covenant Prompt</div><div class="step-file">soraya_covenant.py</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step"><div class="step-num">06</div><div class="step-name">Model Call</div><div class="step-file">Claude Haiku</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step highlight-gate"><div class="step-num">07</div><div class="step-name">4 Gates</div><div class="step-file">soraya_gates.py</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step"><div class="step-num">08</div><div class="step-name">Voice Out</div><div class="step-file">voice_out.py (opt.)</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step highlight-db"><div class="step-num">09</div><div class="step-name">Telemetry Write</div><div class="step-file">ledger_hook.py · db.py</div></div>
+      <div class="pipe-arrow">›</div>
+      <div class="pipe-step highlight-db"><div class="step-num">10</div><div class="step-name">RI Instrument</div><div class="step-file">relationship_integrity.py</div></div>
+    </div>
+  </div>
+  <hr class="section-rule">
+  <div class="three-col">
+    <div class="panel">
+      <div class="panel-header"><div class="dot dot-midnight"></div><h3>Agency Ledger — LedgerState</h3></div>
+      <div class="panel-body">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Estimated per-turn. Governs routing mode. Heuristic proxy — not ground truth.</div>
+        <div class="ledger-vars">
+          <div class="lvar"><span class="lvar-sym">Â</span><span class="lvar-name">Agency trajectory</span></div>
+          <div class="lvar"><span class="lvar-sym">K̂</span><span class="lvar-name">Confusion load</span></div>
+          <div class="lvar"><span class="lvar-sym">D̂</span><span class="lvar-name">Dependency risk</span></div>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;">
+          <strong style="color:var(--text);">Routing modes:</strong><br>
+          scaffold · guide · support · scaffold_heavy · check_in · direct_answer · wonder
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="dot dot-terracotta"></div><h3>Post-Generation Gates</h3></div>
+      <div class="panel-body">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Run on every candidate response. Fail → deterministic rewrite. Pass → audit log.</div>
+        <div class="gate-grid">
+          <div class="gate-card"><div class="gate-name"><span class="gate-num">1</span>Agency</div><div class="gate-desc">Preserved learner's next meaningful move?</div></div>
+          <div class="gate-card"><div class="gate-name"><span class="gate-num">2</span>Justice–Mercy</div><div class="gate-desc">Named truth without humiliating learner?</div></div>
+          <div class="gate-card"><div class="gate-name"><span class="gate-num">3</span>Epistemic</div><div class="gate-desc">Avoided dogmatic closure on contested topics?</div></div>
+          <div class="gate-card"><div class="gate-name"><span class="gate-num">4</span>Wonder/Humor</div><div class="gate-desc">Warmth served learning, not melodrama?</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="dot dot-gold"></div><h3>Module Inventory</h3></div>
+      <div class="panel-body">
+        <div class="module-row"><span class="module-name">app.py</span><span class="module-desc">Gradio UI · run_turn() orchestration</span></div>
+        <div class="module-row"><span class="module-name">ledger.py</span><span class="module-desc">LedgerState · router · repair layer</span></div>
+        <div class="module-row"><span class="module-name">soraya_gates.py</span><span class="module-desc">4 audit gates · GateReport</span></div>
+        <div class="module-row"><span class="module-name">consent_gate.py</span><span class="module-desc">Fail-closed consent · mints IDs</span></div>
+        <div class="module-row"><span class="module-name">db.py</span><span class="module-desc">All Supabase writes · StudyDBError</span></div>
+        <div class="module-row"><span class="module-name">brand_shell.py</span><span class="module-desc">CSS · visual language · no logic</span></div>
+        <div class="module-row"><span class="module-name">voice_out.py</span><span class="module-desc">Optional TTS adapter</span></div>
+        <div class="module-row"><span class="module-name">survey_items.py</span><span class="module-desc">Pre/post instruments (pending IRB)</span></div>
+        <div class="module-row"><span class="module-name">relationship_integrity.py</span><span class="module-desc">Observational RI instrument</span></div>
+        <div class="module-row"><span class="module-name">extractor_v0.py</span><span class="module-desc">2-feature boundary/initiative extractor</span></div>
+        <div class="module-row"><span class="module-name">gradio_shim.py</span><span class="module-desc">RI instrument → Gradio integration</span></div>
+        <div class="module-row"><span class="module-name">soraya_covenant.py</span><span class="module-desc">Central invariant · covenant text</span></div>
+        <div class="module-row"><span class="module-name">soraya_gates_telemetry.py</span><span class="module-desc">Gate audit snapshots</span></div>
+        <div class="module-row"><span class="module-name">ledger_hook.py</span><span class="module-desc">Post-turn write to study_turns</span></div>
+        <div class="module-row"><span class="module-name">kill_test.py</span><span class="module-desc">Cheapest test to break RI extractor</span></div>
+      </div>
+    </div>
+  </div>
+  <hr class="section-rule">
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-header"><div class="dot dot-sage"></div><h3>Supabase Data Schema</h3></div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>Table</th><th>Written by</th><th>Key columns</th></tr></thead>
+          <tbody>
+            <tr><td>study_sessions</td><td>consent_gate.py</td><td style="font-size:11px;color:var(--muted);">participant_id, session_id, condition, consented_at</td></tr>
+            <tr><td>study_turns</td><td>ledger_hook.py</td><td style="font-size:11px;color:var(--muted);">turn_id, a_hat, k_hat, d_hat, routing_mode, gate_*_pass, gate_repairs, latency_ms</td></tr>
+            <tr><td>survey_responses</td><td>app.py</td><td style="font-size:11px;color:var(--muted);">survey_slot ("pre"/"post"), items (JSON), submitted_at</td></tr>
+            <tr><td>contingency_events</td><td>contingency_hook.py</td><td style="font-size:11px;color:var(--muted);">fade property audit, one row per turn</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:16px;">
+          <div style="font-size:11px;font-weight:600;margin-bottom:8px;color:var(--text);">Row-Level Security</div>
+          <div class="rls-row">
+            <div class="rls-card rls-hf"><div class="rls-title">HF Space</div><div class="rls-key">anon / publishable key</div><div class="rls-perms"><span class="tag tag-write">INSERT</span> only — no SELECT</div></div>
+            <div class="rls-card rls-dash"><div class="rls-title">Admin Dashboard</div><div class="rls-key">service role key (server-only)</div><div class="rls-perms"><span class="tag tag-read">SELECT</span> <span class="tag tag-admin">full access</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-header"><div class="dot dot-blue"></div><h3>Technology Stack</h3></div>
+        <div class="panel-body">
+          <div class="module-row"><span class="module-name">HF Space</span><span class="module-desc">Gradio 4 · Python 3.12</span></div>
+          <div class="module-row"><span class="module-name">Model</span><span class="module-desc">Claude Haiku (Anthropic)</span></div>
+          <div class="module-row"><span class="module-name">Database</span><span class="module-desc">Supabase (Postgres + RLS)</span></div>
+          <div class="module-row"><span class="module-name">Dashboard</span><span class="module-desc">Next.js 15 · TypeScript · Vercel</span></div>
+          <div class="module-row"><span class="module-name">Voice (opt.)</span><span class="module-desc">ElevenLabs / OpenAI TTS</span></div>
+          <div class="module-row"><span class="module-name">MCP</span><span class="module-desc">Supabase MCP · project ref</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="dot dot-terracotta"></div><h3>Study Design</h3></div>
+        <div class="panel-body">
+          <div class="module-row"><span class="module-name">Design</span><span class="module-desc">Controlled condition assignment</span></div>
+          <div class="module-row"><span class="module-name">Consent</span><span class="module-desc">3-item disclosure · fail-closed</span></div>
+          <div class="module-row"><span class="module-name">Instruments</span><span class="module-desc">Pre/post survey · pending IRB</span></div>
+          <div class="module-row"><span class="module-name">Withdrawal</span><span class="module-desc">Participant ID issued at consent</span></div>
+          <div class="module-row"><span class="module-name">Data</span><span class="module-desc">De-identified before publication</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <hr class="section-rule">
+  <div class="section-label">Infrastructure — Left to Right</div>
+  <div class="stack-row">
+    <div class="stack-block"><div class="sb-layer">Participant Layer</div><div class="sb-name">Hugging Face Space</div><div class="sb-detail">Gradio UI · public URL · zero infrastructure to manage · sandboxed per session</div></div>
+    <div class="stack-sep">→</div>
+    <div class="stack-block"><div class="sb-layer">Intelligence Layer</div><div class="sb-name">Soraya Engine</div><div class="sb-detail">Ledger · Gates · Covenant · Brand Shell · Voice Out — all Python, no external services except Anthropic API</div></div>
+    <div class="stack-sep">→</div>
+    <div class="stack-block"><div class="sb-layer">Data Layer</div><div class="sb-name">Supabase Postgres</div><div class="sb-detail">4 tables · RLS write-only from Space · service role for admin · schema versioned in git</div></div>
+    <div class="stack-sep">→</div>
+    <div class="stack-block"><div class="sb-layer">Research Layer</div><div class="sb-name">Admin Dashboard</div><div class="sb-detail">Next.js 15 · Vercel · session list · turn viewer · survey export · API routes server-side only</div></div>
+  </div>
+</div>
+<footer>
+  <span>Soraya Study · Kaleidoworks · v1.4.2 · June 2026</span>
+  <span>Architecture diagram — for institutional review and partner orientation</span>
+</footer>
+</body>
+</html>
