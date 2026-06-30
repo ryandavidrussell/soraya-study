@@ -1,1 +1,0 @@
-open('/home/user/hf_files/consent_gate.py').read()
