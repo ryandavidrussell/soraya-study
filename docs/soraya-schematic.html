@@ -99,17 +99,30 @@
   .rls-card .rls-perms { font-size: 11px; }
   footer { border-top: 1px solid var(--border); padding: 20px 48px; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); background: var(--surface); }
   hr.section-rule { border: none; border-top: 1px solid var(--border); margin: 0 0 36px; }
+  .consent-items { margin-top: 10px; }
+  .consent-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.04); font-size: 11px; }
+  .consent-item:last-child { border-bottom: none; }
+  .consent-cb { width: 12px; height: 12px; border: 1.5px solid var(--terracotta); border-radius: 2px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; background: #fff8f0; }
+  .consent-cb.new { border-color: var(--gold); background: #fffbf0; }
+  .consent-cb svg { width: 8px; height: 8px; stroke: var(--terracotta); stroke-width: 2.5; fill: none; }
+  .consent-cb.new svg { stroke: var(--gold); }
+  .consent-label { color: var(--text); line-height: 1.4; }
+  .consent-label .new-badge { display: inline-block; font-size: 9px; font-family: var(--font-mono); background: var(--gold); color: white; border-radius: 3px; padding: 0 5px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.04em; }
+  .identity-note { margin-top: 12px; background: #f0f4ff; border: 1px solid rgba(30,53,80,0.2); border-radius: 6px; padding: 10px 12px; font-size: 11px; color: var(--midnight); }
+  .identity-note strong { font-weight: 600; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Soraya Study <span class="version-badge">v1.4.2</span></h1>
-  <p>Kaleidoworks &nbsp;·&nbsp; System Architecture &nbsp;·&nbsp; June 2026</p>
+  <h1>Soraya Study <span class="version-badge">v1.4.3</span></h1>
+  <p>Kaleidoworks &nbsp;·&nbsp; System Architecture &nbsp;·&nbsp; July 2026</p>
 </header>
 <div class="canvas">
   <div class="section-label">Participant Journey</div>
   <div class="flow-row">
     <div class="flow-node accent-midnight"><div class="node-title">HF Space</div><div class="node-file">Gradio UI</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node accent-midnight" style="border-color:var(--gold);background:var(--midnight);"><div class="node-title" style="color:var(--gold);">Identity Restore</div><div class="node-file">gr.BrowserState</div></div>
     <div class="flow-arrow">→</div>
     <div class="flow-node accent-terracotta"><div class="node-title">Consent Gate</div><div class="node-file">consent_gate.py</div></div>
     <div class="flow-arrow">→</div>
@@ -121,6 +134,51 @@
     <div class="flow-arrow">→</div>
     <div class="flow-node accent-sage"><div class="node-title">Supabase</div><div class="node-file">db.py</div></div>
   </div>
+  <hr class="section-rule">
+
+  <div class="section-label">Consent Form — Four-Item Disclosure (v1.4.3)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:48px;">
+    <div class="panel">
+      <div class="panel-header"><div class="dot dot-terracotta"></div><h3>Consent Checkboxes — consent_gate.py</h3></div>
+      <div class="panel-body">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">All four must be checked before a participant ID is minted. Gate is fail-closed — any unchecked item blocks progression.</div>
+        <div class="consent-items">
+          <div class="consent-item">
+            <div class="consent-cb"><svg viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2"/></svg></div>
+            <div class="consent-label">Messages may be reviewed by researchers for study purposes</div>
+          </div>
+          <div class="consent-item">
+            <div class="consent-cb"><svg viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2"/></svg></div>
+            <div class="consent-label">De-identified conversation data may be used in academic publications</div>
+          </div>
+          <div class="consent-item">
+            <div class="consent-cb"><svg viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2"/></svg></div>
+            <div class="consent-label">Participation is voluntary and may be withdrawn at any time using the participant ID</div>
+          </div>
+          <div class="consent-item">
+            <div class="consent-cb new"><svg viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2"/></svg></div>
+            <div class="consent-label">A browser-scoped identifier will persist on this device to avoid re-consent on return visits. Clearing browser data or switching browsers creates a new unlinked ID. <span class="new-badge">NEW</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="dot dot-midnight"></div><h3>Identity Persistence — gr.BrowserState</h3></div>
+      <div class="panel-body">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Participant ID and consent flag are persisted in the browser's localStorage via Gradio's <code style="font-family:var(--font-mono);font-size:10px;">gr.BrowserState</code>. Checked on <code style="font-family:var(--font-mono);font-size:10px;">demo.load()</code> before rendering any UI.</div>
+        <div class="identity-note">
+          <strong>Returning visitor flow:</strong> <code style="font-family:var(--font-mono);">_on_load()</code> reads <code style="font-family:var(--font-mono);">identity_store</code>. If <code style="font-family:var(--font-mono);">consent_granted == True</code>, the consent screen is skipped and the participant lands directly on the pre-survey. Identity/consent persists across sessions; pre/post surveys run once per session.
+        </div>
+        <div class="identity-note" style="margin-top:8px;background:#fff8f0;border-color:rgba(196,86,61,0.25);color:#7a3520;">
+          <strong>New visit / cleared data:</strong> No <code style="font-family:var(--font-mono);">identity_store</code> → fresh consent gate → new <code style="font-family:var(--font-mono);">participant_id</code> minted by <code style="font-family:var(--font-mono);">consent_gate.py</code>. The two sessions are unlinked in Supabase. This is the bug the patch fixes.
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);">
+          <strong style="color:var(--text);">Requires:</strong> Gradio ≥ 4.34 (Space pins 4.44.1 ✓)
+        </div>
+      </div>
+    </div>
+  </div>
+
   <hr class="section-rule">
   <div class="section-label">Per-Turn Pipeline (every chat message)</div>
   <div class="pipeline">
@@ -178,10 +236,10 @@
     <div class="panel">
       <div class="panel-header"><div class="dot dot-gold"></div><h3>Module Inventory</h3></div>
       <div class="panel-body">
-        <div class="module-row"><span class="module-name">app.py</span><span class="module-desc">Gradio UI · run_turn() orchestration</span></div>
+        <div class="module-row"><span class="module-name">app.py</span><span class="module-desc">Gradio UI · run_turn() · BrowserState wiring</span></div>
         <div class="module-row"><span class="module-name">ledger.py</span><span class="module-desc">LedgerState · router · repair layer</span></div>
         <div class="module-row"><span class="module-name">soraya_gates.py</span><span class="module-desc">4 audit gates · GateReport</span></div>
-        <div class="module-row"><span class="module-name">consent_gate.py</span><span class="module-desc">Fail-closed consent · mints IDs</span></div>
+        <div class="module-row"><span class="module-name">consent_gate.py</span><span class="module-desc">4-item fail-closed consent · mints IDs</span></div>
         <div class="module-row"><span class="module-name">db.py</span><span class="module-desc">All Supabase writes · StudyDBError</span></div>
         <div class="module-row"><span class="module-name">brand_shell.py</span><span class="module-desc">CSS · visual language · no logic</span></div>
         <div class="module-row"><span class="module-name">voice_out.py</span><span class="module-desc">Optional TTS adapter</span></div>
@@ -204,7 +262,7 @@
         <table class="data-table">
           <thead><tr><th>Table</th><th>Written by</th><th>Key columns</th></tr></thead>
           <tbody>
-            <tr><td>study_sessions</td><td>consent_gate.py</td><td style="font-size:11px;color:var(--muted);">participant_id, session_id, condition, consented_at</td></tr>
+            <tr><td>study_sessions</td><td>consent_gate.py</td><td style="font-size:11px;color:var(--muted);">participant_id, session_id, condition, consented_at, consent_version</td></tr>
             <tr><td>study_turns</td><td>ledger_hook.py</td><td style="font-size:11px;color:var(--muted);">turn_id, a_hat, k_hat, d_hat, routing_mode, gate_*_pass, gate_repairs, latency_ms</td></tr>
             <tr><td>survey_responses</td><td>app.py</td><td style="font-size:11px;color:var(--muted);">survey_slot ("pre"/"post"), items (JSON), submitted_at</td></tr>
             <tr><td>contingency_events</td><td>contingency_hook.py</td><td style="font-size:11px;color:var(--muted);">fade property audit, one row per turn</td></tr>
@@ -213,7 +271,7 @@
         <div style="margin-top:16px;">
           <div style="font-size:11px;font-weight:600;margin-bottom:8px;color:var(--text);">Row-Level Security</div>
           <div class="rls-row">
-            <div class="rls-card rls-hf"><div class="rls-title">HF Space</div><div class="rls-key">anon / publishable key</div><div class="rls-perms"><span class="tag tag-write">INSERT</span> only — no SELECT</div></div>
+            <div class="rls-card rls-hf"><div class="rls-title">HF Space</div><div class="rls-key">anon / publishable key</div><div class="rls-perms"><span class="tag tag-write">INSERT</span> only — no SELECT<br><span style="font-size:10px;color:var(--muted);">returning="minimal" on all inserts</span></div></div>
             <div class="rls-card rls-dash"><div class="rls-title">Admin Dashboard</div><div class="rls-key">service role key (server-only)</div><div class="rls-perms"><span class="tag tag-read">SELECT</span> <span class="tag tag-admin">full access</span></div></div>
           </div>
         </div>
@@ -223,7 +281,7 @@
       <div class="panel" style="margin-bottom:16px;">
         <div class="panel-header"><div class="dot dot-blue"></div><h3>Technology Stack</h3></div>
         <div class="panel-body">
-          <div class="module-row"><span class="module-name">HF Space</span><span class="module-desc">Gradio 4 · Python 3.12</span></div>
+          <div class="module-row"><span class="module-name">HF Space</span><span class="module-desc">Gradio 4.44.1 · Python 3.12</span></div>
           <div class="module-row"><span class="module-name">Model</span><span class="module-desc">Claude Haiku (Anthropic)</span></div>
           <div class="module-row"><span class="module-name">Database</span><span class="module-desc">Supabase (Postgres + RLS)</span></div>
           <div class="module-row"><span class="module-name">Dashboard</span><span class="module-desc">Next.js 15 · TypeScript · Vercel</span></div>
@@ -235,7 +293,8 @@
         <div class="panel-header"><div class="dot dot-terracotta"></div><h3>Study Design</h3></div>
         <div class="panel-body">
           <div class="module-row"><span class="module-name">Design</span><span class="module-desc">Controlled condition assignment</span></div>
-          <div class="module-row"><span class="module-name">Consent</span><span class="module-desc">3-item disclosure · fail-closed</span></div>
+          <div class="module-row"><span class="module-name">Consent</span><span class="module-desc">4-item disclosure · fail-closed · v1.4.3</span></div>
+          <div class="module-row"><span class="module-name">Identity</span><span class="module-desc">Browser-scoped via gr.BrowserState</span></div>
           <div class="module-row"><span class="module-name">Instruments</span><span class="module-desc">Pre/post survey · pending IRB</span></div>
           <div class="module-row"><span class="module-name">Withdrawal</span><span class="module-desc">Participant ID issued at consent</span></div>
           <div class="module-row"><span class="module-name">Data</span><span class="module-desc">De-identified before publication</span></div>
@@ -246,17 +305,17 @@
   <hr class="section-rule">
   <div class="section-label">Infrastructure — Left to Right</div>
   <div class="stack-row">
-    <div class="stack-block"><div class="sb-layer">Participant Layer</div><div class="sb-name">Hugging Face Space</div><div class="sb-detail">Gradio UI · public URL · zero infrastructure to manage · sandboxed per session</div></div>
+    <div class="stack-block"><div class="sb-layer">Participant Layer</div><div class="sb-name">Hugging Face Space</div><div class="sb-detail">Gradio UI · public URL · zero infrastructure to manage · identity persisted via gr.BrowserState across visits</div></div>
     <div class="stack-sep">→</div>
     <div class="stack-block"><div class="sb-layer">Intelligence Layer</div><div class="sb-name">Soraya Engine</div><div class="sb-detail">Ledger · Gates · Covenant · Brand Shell · Voice Out — all Python, no external services except Anthropic API</div></div>
     <div class="stack-sep">→</div>
-    <div class="stack-block"><div class="sb-layer">Data Layer</div><div class="sb-name">Supabase Postgres</div><div class="sb-detail">4 tables · RLS write-only from Space · service role for admin · schema versioned in git</div></div>
+    <div class="stack-block"><div class="sb-layer">Data Layer</div><div class="sb-name">Supabase Postgres</div><div class="sb-detail">4 tables · RLS write-only from Space (returning="minimal") · service role for admin · schema versioned in git</div></div>
     <div class="stack-sep">→</div>
     <div class="stack-block"><div class="sb-layer">Research Layer</div><div class="sb-name">Admin Dashboard</div><div class="sb-detail">Next.js 15 · Vercel · session list · turn viewer · survey export · API routes server-side only</div></div>
   </div>
 </div>
 <footer>
-  <span>Soraya Study · Kaleidoworks · v1.4.2 · June 2026</span>
+  <span>Soraya Study · Kaleidoworks · v1.4.3 · July 2026</span>
   <span>Architecture diagram — for institutional review and partner orientation</span>
 </footer>
 </body>
