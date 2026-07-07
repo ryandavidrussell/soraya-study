@@ -4,9 +4,9 @@
 KL-9 (app.py lineage fork).
 **Order is load-bearing. Execute steps in sequence. Return raw terminal
 output after each step. Stop on any ABORT. Do not repair, reinterpret, or
-reorder.** Last-hop rule (INV17): the executor verifies the hash of the exact
-copy it holds before starting; the authoring hash below is an authoring
-receipt, not the seal.
+reorder.** Last-hop rule (INV17): the executor verifies blob identity from
+GitHub before starting (see Step 0). Do not execute pasted copies. Do not
+execute r2 (blob b9b3e41).
 
 Authoring principle for this wave: **nothing that already exists is retyped.**
 Every existing file travels by git, byte-exact — no intermediary in the loop.
@@ -43,7 +43,16 @@ not silent resolution.
 
 -----
 
-## Step 0 — Close receipt #1 (the frozen open protocol call, unchanged)
+## Step 0 — PRECONDITION + TWO INDEPENDENT ABORTS
+
+**PRECONDITION — revision receipted:**
+Diff r2 (blob `b9b3e41dd02cd310fb927d7324636674009539e1`) against the authored
+draft (blob `5e74293b…`). Delta must be prose-only: no change inside frozen
+regions (commands, heredocs, ABORT strings, manifest rows). Prose-only →
+proceed. Any executable-line change → stop; r1 syntax receipts are void;
+re-verify embedded scripts from r3 before continuing.
+
+**ABORT 0A — Space pin moved:**
 
 ```bash
 git clone https://huggingface.co/spaces/Kaleidoworkings/soraya-study space
@@ -54,15 +63,32 @@ git rev-parse HEAD
 **ABORT** unless it prints `f1b6f4e469beefaec6257286bc5aec0110d570a1` — the
 window closed; re-pin before anything else.
 
+**ABORT 0B — instruction identity (non-circular):**
+
 ```bash
 git remote add github https://github.com/ryandavidrussell/soraya-study.git
 git fetch github
+git rev-parse github/main:docs/WAVE2_RUNBOOK.md
+```
+
+**ABORT** unless it prints the r3 blob SHA (the SHA of this file as landed on
+`github/main`). The copy being executed must be that checkout — not a pasted
+copy, not r2. Content addressing over the evidence trail is the seal; the
+transport surface has no door left to watch.
+
+**Both ABORTs and the precondition must pass before any push touches either
+remote.**
+
+```bash
 git push github HEAD:refs/heads/space-history-f1b6f4e
 git ls-remote github refs/heads/space-history-f1b6f4e
 ```
 
 Must print `f1b6f4e469b…`. **Receipt #1 closes here.** ABORT on any failure —
 everything below presupposes this branch exists.
+
+**ON ABORT:** return the ABORT label (0A or 0B), the exact output that
+triggered it, and stop. Do not diagnose. Do not continue.
 
 ## Step 1 — Preserve the BrowserState lineage before it leaves main
 
@@ -287,5 +313,10 @@ FN-027 reproduction · Gates 5–6 gold set dead last · graduation by logged ro
 
 -----
 
-Authoring hash (authoring-tier per INV17): `f6f694ba1e3afd3a17ea41f7d2c0dcb56736d04ccfe1f904c0699a354896876d`
-The executor mints the seal over the exact copy it holds before Step 0.
+Receipt chain (INV17):
+  r1 authored draft     blob 5e74293b…   12,189 B   syntax receipts attach here
+  r2 operator-amended   blob b9b3e41…    17,241 B   not execution-ready (circular 0B)
+  r3 this file          blob <r3 SHA>               Step 0 git-native; execution-ready
+
+Authoring hash (r1, authoring-tier): `f6f694ba1e3afd3a17ea41f7d2c0dcb56736d04ccfe1f904c0699a354896876d`
+The executor verifies r3 blob identity from github/main before Step 0. Do not execute r2.
